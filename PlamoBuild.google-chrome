@@ -1,11 +1,11 @@
 #!/bin/sh
 ##############################################################
 pkgbase=google_chrome
-vers=63.0.3239.84
+#vers=`date "+%Y%m%d%H%M"`
 verbld=1
 arch=`uname -m | sed -e 's/i.86/i386/'`
 url="https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm"
-build=P1
+build=T1
 src=google-chrome-stable
 OPT_CONFIG=''
 DOCS=''
@@ -14,9 +14,23 @@ patchfiles=''
 installdir='opt/google/chrome'
 ##############################################################
 
-if [ ! -f ${url##*/} ]; then
-  wget $url
+# if [ ! -f ${url##*/} ]; then
+#   wget $url
+# fi
+
+if [ -f ${url##*/} ]; then
+#	touch -d "`ls -l --time-style="+%Y-%m-%d %H:%M:%S" ${url##*/} | awk '{print $6 " " $7}'`" timestamp
+	touch -r ${url##*/} timestamp
+	wget --timestamping $url
+	if [ ! timestamp -ot ${url##*/} ]; then
+		echo "Chrome is the latest version"
+		exit 0
+	fi
+else
+	wget $url
 fi
+
+vers=`ls -l --time-style="+%Y%m%d%H%M%S" ${url##*/} | awk '{print $6}'`
 
 if [ "$arch" = "x86_64" ]; then
     libdir=lib64
@@ -57,9 +71,13 @@ EOF
 
 
 mkdir -p ./usr/share/doc/$src
-cp ../$0 ./usr/share/doc/$src
+cp $0 ./usr/share/doc/$src
   
 /sbin/makepkg ../$pkgbase-$vers-$arch-$build.txz <<EOF
 y
 1
 EOF
+
+/sbin/updatepkg -f ../$pkgbase-$vers-$arch-$build.txz
+
+rm -f ../$pkgbase-$vers-$arch-$build.txz
